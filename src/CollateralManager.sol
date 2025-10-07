@@ -6,12 +6,11 @@ import {Pool} from "src/Pool.sol";
 
 contract CollateralManager is Pool {
     mapping(address => mapping(address => uint256)) lockedBalances;
-
     address priceFeed;
     AggregatorV3Interface internal ethUsdPriceFeed;
     AggregatorV3Interface internal btcUsdPriceFeed;
 
-    constructor() {
+    constructor(address _btc, address _eth, address _usdt) Pool(_btc, _eth, _usdt) {
         // ETH/USD Chainlink Oracle
         ethUsdPriceFeed = AggregatorV3Interface(priceFeed);
 
@@ -35,24 +34,52 @@ contract CollateralManager is Pool {
     }
 
     //This function locks token as collateral
-    function lockAsCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user) {
-        userTotalBalance[user] -= amount;
-        lockedBalances[user][lockedPool] += amount;
+    function lockEthCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user, ETH) {
+        balances[user][ETH] -= amount;
+        lockedBalances[user][ETH] += amount;
+    }
+
+    function lockBtcCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user, BTC) {
+        balances[user][ETH] -= amount;
+        lockedBalances[user][BTC] += amount;
     }
     //This function unlocks token as collateral
 
     function unlockCollateral() private {}
 
-    function getCollateralPriceInUsd(address user) public view returns (uint256) {
-        uint256 ethPrice = getPrice(ethUsdPriceFeed);
+    function getBtcCollateralValueInUsd(address user) public view returns (uint256) {
+        // uint256 ethPrice = getPrice(ethUsdPriceFeed);
         uint256 btcPrice = getPrice(btcUsdPriceFeed);
 
-        uint256 wethBalance = lockedBalances[user][eth]; // 18 decimals
-        uint256 wbtcBalance = lockedBalances[user][btc]; // 8 decimals
+        // uint256 wethBalance = lockedBalances[user][ETH]; // 18 decimals
+        uint256 wbtcBalance = lockedBalances[user][BTC]; // 8 decimals
 
-        uint256 wethValue = (wethBalance * ethPrice) / 1e18;
+        // uint256 wethValue = (wethBalance * ethPrice) / 1e18;
         uint256 wbtcValue = (wbtcBalance * btcPrice) / 1e8;
 
-        return wethValue + wbtcValue; // USD value in 8 decimals
+        return wbtcValue; // USD value in 8 decimals
+    }
+
+    function getEthCollateralValueInUsd(address user) public view returns (uint256) {
+        uint256 ethPrice = getPrice(ethUsdPriceFeed);
+        //uint256 btcPrice = getPrice(btcUsdPriceFeed);
+
+        uint256 wethBalance = lockedBalances[user][ETH]; // 18 decimals
+        // uint256 wbtcBalance = lockedBalances[user][BTC]; // 8 decimals
+
+        uint256 wethValue = (wethBalance * ethPrice) / 1e18;
+        //uint256 wbtcValue = (wbtcBalance * btcPrice) / 1e8;
+
+        return wethValue; //+ wbtcValue; // USD value in 8 decimals
+    }
+
+    function getEthPrice() public view returns (uint256) {
+        uint256 ethPrice = getPrice(ethUsdPriceFeed);
+        return ethPrice;
+    }
+
+    function getBtcPrice() public view returns (uint256) {
+        uint256 btcPrice = getPrice(btcUsdPriceFeed);
+        return btcPrice;
     }
 }
