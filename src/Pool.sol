@@ -25,18 +25,19 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Pool {
+contract Pool is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     error amountShouldBeGreaterThanZero(string);
-    error transferFailed(string);
     error insufficientBalance(string);
-    error withdrawalFailed(string);
-    //IERC20 erc20 = IERC20 (address token);
 
-    address btc;
-    address eth;
-    address lockedPool;
-    mapping(address => uint256) userTotalBalance;
+    address immutable BTC;
+    address immutable ETH;
+    address immutable USDT;
+    mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
 
     event transferSuccessful(address, uint256);
@@ -49,58 +50,82 @@ contract Pool {
         _;
     }
 
-    modifier balanceMustBeSufficient(uint256 amount, address user) {
-        require(userTotalBalance[user] >= amount, "Insufficient Balance");
+    modifier balanceMustBeSufficient(uint256 amount, address user, address token) {
+        require(balances[user][token] >= amount, "Insufficient Balance");
         _;
     }
 
-    //This function transfers tokens to the pool from the caller's address and mints a corresponding amount of virtual token to the caller's address
-    function supplyEth(uint256 amount, address poolAddress) internal mustBeGreaterThanZero(amount) {
-        userTotalBalance[msg.sender] -= amount;
-        poolTotalBalance[poolAddress] += amount;
-        emit transferSuccessful(msg.sender, amount);
-        IERC20 wEth = IERC20(eth);
-        bool successful = wEth.transferFrom(msg.sender, poolAddress, amount);
-        if (!successful) {
-            revert transferFailed("Transfer Failed");
-        }
+    constructor(address _btc, address _eth, address _usdt) {
+        BTC = _btc;
+        ETH = _eth;
+        USDT = _usdt;
     }
 
-    function supplyBtc(uint256 amount, address poolAddress) internal mustBeGreaterThanZero(amount) {
-        userTotalBalance[msg.sender] -= amount;
-        poolTotalBalance[poolAddress] += amount;
+    // Supply USDT for borrowing
+    // Accumulates interests
+    // Can be unavailable sometimes
+    function supplyUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+        balances[msg.sender][USDT] += amount;
+        poolTotalBalance[USDT] += amount;
+        IERC20(USDT).safeTransferFrom(msg.sender, address(this), amount);
         emit transferSuccessful(msg.sender, amount);
-        IERC20 wBtc = IERC20(btc);
-        bool successful = wBtc.transferFrom(msg.sender, poolAddress, amount);
-        if (!successful) {
-            revert transferFailed("Transfer Failed");
-        }
+    }
+
+    function borrowUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+        balances[msg.sender][USDT] += amount;
+        poolTotalBalance[USDT] -= amount;
+        IERC20(USDT).safeTransfer(msg.sender, amount);
+        emit transferSuccessful(msg.sender, amount);
+    }
+
+    function payUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+        balances[msg.sender][USDT] -= amount;
+        poolTotalBalance[USDT] += amount;
+        IERC20(USDT).safeTransferFrom(msg.sender, address(this), amount);
+        emit transferSuccessful(msg.sender, amount);
+    }
+
+    //This function transfers tokens to the pool from the caller's address and mints a corresponding amount of virtual token to the caller's address
+    function supplyEth(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+        balances[msg.sender][ETH] += amount;
+        poolTotalBalance[ETH] += amount;
+        emit transferSuccessful(msg.sender, amount);
+        IERC20(ETH).safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function supplyBtc(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+        balances[msg.sender][BTC] += amount;
+        poolTotalBalance[BTC] += amount;
+        emit transferSuccessful(msg.sender, amount);
+        IERC20(BTC).safeTransferFrom(msg.sender, address(this), amount);
     }
     // This function transfers tokens from the pool to the caller's address and burns a corresponding amount of virtual token from the caller's address
     // This can only be called by an address that has supplied tokens to the pool
     // Caller can't withdraw locked tokens i.e tokens that has been locked as collateral
     // Tokens locked as collateral accumulates interest
 
-    function withdrawEth(uint256 amount, address poolAddress) internal mustBeGreaterThanZero(amount) {
-        userTotalBalance[msg.sender] += amount;
-        poolTotalBalance[poolAddress] -= amount;
+    function withdrawEth(uint256 amount)
+        external
+        mustBeGreaterThanZero(amount)
+        balanceMustBeSufficient(amount, msg.sender, ETH)
+        nonReentrant
+    {
+        balances[msg.sender][ETH] -= amount;
+        poolTotalBalance[ETH] -= amount;
+        IERC20(ETH).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
-        IERC20 wEth = IERC20(eth);
-        bool successful = wEth.transfer(msg.sender, amount);
-        if (!successful) {
-            revert withdrawalFailed("Withdrawal Failed");
-        }
     }
 
-    function withdrawBtc(uint256 amount, address poolAddress) internal mustBeGreaterThanZero(amount) {
-        userTotalBalance[msg.sender] += amount;
-        poolTotalBalance[poolAddress] -= amount;
+    function withdrawBtc(uint256 amount)
+        external
+        mustBeGreaterThanZero(amount)
+        balanceMustBeSufficient(amount, msg.sender, BTC)
+        nonReentrant
+    {
+        balances[msg.sender][BTC] -= amount;
+        poolTotalBalance[BTC] -= amount;
+        IERC20(ETH).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
-        IERC20 wBtc = IERC20(btc);
-        bool successful = wBtc.transfer(msg.sender, amount);
-        if (!successful) {
-            revert withdrawalFailed("Withdrawal Failed");
-        }
     }
 
     function setHealthFactor() private {}

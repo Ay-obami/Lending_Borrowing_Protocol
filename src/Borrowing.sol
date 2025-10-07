@@ -5,12 +5,11 @@ import {Pool} from "src/Pool.sol";
 import {CollateralManager} from "src/CollateralManager.sol";
 
 contract Borrowing is Pool {
-    CollateralManager collateralManager;
+    constructor(address _btc, address _eth, address _usdt) Pool(_btc, _eth, _usdt) {}
 
-    modifier ensureEnoughCollateralForLoan(uint256 amount, address user) {
-        require(userTotalBalance[user] * 2 >= amount / 3, "Insufficient Balance for loan collateral (150% is required)");
-        _;
-    }
+    CollateralManager collateralManager;
+    Pool pool;
+
     // This function locks 150% of the value of token borrowed from the token supplied by the caller
     // Transfers the stable coin the caller wants to borrow to their address
     // This function can only be called if the value of caller's tokens in the pool is up to 150% of the value of the token they want to borrow
@@ -18,8 +17,26 @@ contract Borrowing is Pool {
     // The loan grows as the interest accumulates
     // Collateral gets liquidated the moment the value drops to 120% of the loan borrowed
 
-    function borrow(uint256 amount) private ensureEnoughCollateralForLoan(amount, msg.sender) {
-        collateralManager.lockAsCollateral((amount * 3) / 2, msg.sender);
+    function borrowWithEthAsCollateral(uint256 usdtAmount) private {
+        require(
+            collateralManager.getEthCollateralValueInUsd(msg.sender) * 2 >= usdtAmount / 3,
+            "Insufficient Balance for loan collateral (150% is required)"
+        );
+        uint256 ethPrice = collateralManager.getEthPrice();
+        uint256 ethValueToBeLocked = ((usdtAmount * 3) / (ethPrice / 2));
+        collateralManager.lockEthCollateral(ethValueToBeLocked, msg.sender);
+        pool.borrowUsdt(usdtAmount);
+    }
+
+    function borrowWithBtcAsCollateral(uint256 usdtAmount) private {
+        require(
+            collateralManager.getBtcCollateralValueInUsd(msg.sender) * 2 >= usdtAmount / 3,
+            "Insufficient Balance for loan collateral (150% is required)"
+        );
+        uint256 ethPrice = collateralManager.getBtcPrice();
+        uint256 btcValueToBeLocked = ((usdtAmount * 3) / (ethPrice / 2));
+        collateralManager.lockBtcCollateral(btcValueToBeLocked, msg.sender);
+        pool.borrowUsdt(usdtAmount);
     }
 
     // This function transfers the stable coin borrowed from the caller's address to the pool
