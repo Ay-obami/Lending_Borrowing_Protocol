@@ -40,12 +40,19 @@ contract CollateralManager is Pool {
     }
 
     function lockBtcCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user, BTC) {
-        balances[user][ETH] -= amount;
+        balances[user][BTC] -= amount;
         lockedBalances[user][BTC] += amount;
     }
     //This function unlocks token as collateral
 
-    function unlockCollateral() private {}
+   function unlockBtcCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user, BTC) {
+        balances[user][ETH] += amount;
+        lockedBalances[user][BTC] -= amount;
+    }
+    function unlockEthCollateral(uint256 amount, address user) external balanceMustBeSufficient(amount, user, BTC) {
+        balances[user][ETH] += amount;
+        lockedBalances[user][ETH] -= amount;
+    }
 
     function getBtcCollateralValueInUsd(address user) public view returns (uint256) {
         // uint256 ethPrice = getPrice(ethUsdPriceFeed);
@@ -81,5 +88,15 @@ contract CollateralManager is Pool {
     function getBtcPrice() public view returns (uint256) {
         uint256 btcPrice = getPrice(btcUsdPriceFeed);
         return btcPrice;
+    }
+    function getLockedBtcBalance () public view returns (uint256) {
+         uint256 presentCollateralBalance = lockedBalances[msg.sender][BTC]; 
+         return presentCollateralBalance;
+
+    }
+     function getLockedEthBalance () public view returns (uint256) {
+         uint256 presentCollateralBalance = lockedBalances[msg.sender][ETH]; 
+         return presentCollateralBalance;
+
     }
 }
