@@ -4,9 +4,8 @@ pragma solidity ^0.8.0;
 import {Pool} from "src/Pool.sol";
 import {CollateralManager} from "src/CollateralManager.sol";
 
-contract Borrowing is Pool {
-    constructor(address _btc, address _eth, address _usdt) Pool(_btc, _eth, _usdt) {}
-
+contract Borrowing  {
+    
     CollateralManager collateralManager;
     Pool pool;
 
@@ -33,13 +32,30 @@ contract Borrowing is Pool {
             collateralManager.getBtcCollateralValueInUsd(msg.sender) * 2 >= usdtAmount / 3,
             "Insufficient Balance for loan collateral (150% is required)"
         );
-        uint256 ethPrice = collateralManager.getBtcPrice();
-        uint256 btcValueToBeLocked = ((usdtAmount * 3) / (ethPrice / 2));
+        uint256 btcPrice = collateralManager.getBtcPrice();
+        uint256 btcValueToBeLocked = ((usdtAmount * 3) / (btcPrice / 2));
         collateralManager.lockBtcCollateral(btcValueToBeLocked, msg.sender);
         pool.borrowUsdt(usdtAmount);
     }
 
     // This function transfers the stable coin borrowed from the caller's address to the pool
-    // Unlocks the collateral back
-    function repay() private {}
+    // Unlocks the collateral back when loan is fully paid 
+    function repayLoanWithBtcAsCollateral(uint256 usdtAmount) private {
+        pool.payUsdt(usdtAmount);
+        uint256 loanBalance = pool.getLoanBalance(msg.sender); 
+        if (loanBalance <= 0)  {
+           uint256 presentCollateralBalance = collateralManager.getLockedBtcBalance();
+            collateralManager.unlockBtcCollateral(presentCollateralBalance, msg.sender);
+        }
+
+    }
+     function repayLoanWithEThAsCollateral(uint256 usdtAmount) private {
+        pool.payUsdt(usdtAmount);
+        uint256 loanBalance = pool.getLoanBalance(msg.sender); 
+        if (loanBalance <= 0)  {
+           uint256 presentCollateralBalance = collateralManager.getLockedEthBalance();
+            collateralManager.unlockEthCollateral(presentCollateralBalance, msg.sender);
+        }
+
+    }
 }

@@ -39,6 +39,7 @@ contract Pool is ReentrancyGuard {
     address immutable USDT;
     mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
+    mapping(address => uint256) loanBalances;
 
     event transferSuccessful(address, uint256);
     event withdrawalSuccessful(address, uint256);
@@ -72,14 +73,16 @@ contract Pool is ReentrancyGuard {
     }
 
     function borrowUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
-        balances[msg.sender][USDT] += amount;
+        //balances[msg.sender][USDT] += amount;
+        loanBalances[msg.sender] += amount;
         poolTotalBalance[USDT] -= amount;
         IERC20(USDT).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
 
     function payUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
-        balances[msg.sender][USDT] -= amount;
+        //balances[msg.sender][USDT] -= amount;
+        loanBalances[msg.sender] -= amount;
         poolTotalBalance[USDT] += amount;
         IERC20(USDT).safeTransferFrom(msg.sender, address(this), amount);
         emit transferSuccessful(msg.sender, amount);
@@ -89,15 +92,15 @@ contract Pool is ReentrancyGuard {
     function supplyEth(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
         balances[msg.sender][ETH] += amount;
         poolTotalBalance[ETH] += amount;
-        emit transferSuccessful(msg.sender, amount);
         IERC20(ETH).safeTransferFrom(msg.sender, address(this), amount);
+        emit transferSuccessful(msg.sender, amount);
     }
 
     function supplyBtc(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
         balances[msg.sender][BTC] += amount;
         poolTotalBalance[BTC] += amount;
-        emit transferSuccessful(msg.sender, amount);
         IERC20(BTC).safeTransferFrom(msg.sender, address(this), amount);
+        emit transferSuccessful(msg.sender, amount);
     }
     // This function transfers tokens from the pool to the caller's address and burns a corresponding amount of virtual token from the caller's address
     // This can only be called by an address that has supplied tokens to the pool
@@ -130,4 +133,8 @@ contract Pool is ReentrancyGuard {
 
     function setHealthFactor() private {}
     function getHealthFactor() public {}
+    function getLoanBalance (address user) public view returns (uint256) {
+        uint256 loanBalance = loanBalances[user];
+        return loanBalance;
+    }
 }
