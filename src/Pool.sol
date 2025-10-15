@@ -27,15 +27,25 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Vusdt} from "src/Vtokens/VUsdt.sol";
+import {Vbtc} from "src/Vtokens/VBtc.sol";
+import {Veth} from "src/Vtokens/VEth.sol";
+import {Dusdt} from "src/Vtokens/DUsdt.sol";
 
 contract Pool is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    Vusdt public immutable VUSDT;
+    Vbtc public immutable VBTC;
+    Veth public immutable VETH;
+    Dusdt public immutable DUSDT;
+    
+
     error amountShouldBeGreaterThanZero(string);
     error insufficientBalance(string);
 
-    address immutable BTC;
-    address immutable ETH;
+    address immutable BTC; // WETH Address 
+    address immutable ETH; // WBTC Address 
     address immutable USDT;
     mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
@@ -60,6 +70,17 @@ contract Pool is ReentrancyGuard {
         BTC = _btc;
         ETH = _eth;
         USDT = _usdt;
+
+         // Deploy VTokens here
+        VUSDT = new Vusdt();
+        VBTC = new Vbtc();
+        VETH = new Veth();
+        DUSDT = new Dusdt();
+
+        // Transfer ownership of each VToken to this Pool
+        //VUSDT.transferOwnership(address(this));
+       // VBTC.transferOwnership(address(this));
+        //VETH.transferOwnership(address(this));
     }
 
     // Supply USDT for borrowing
@@ -69,6 +90,7 @@ contract Pool is ReentrancyGuard {
         balances[msg.sender][USDT] += amount;
         poolTotalBalance[USDT] += amount;
         IERC20(USDT).safeTransferFrom(msg.sender, address(this), amount);
+        VUSDT.mint(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
 
@@ -76,6 +98,7 @@ contract Pool is ReentrancyGuard {
         //balances[msg.sender][USDT] += amount;
         loanBalances[msg.sender] += amount;
         poolTotalBalance[USDT] -= amount;
+        DUSDT.mint(msg.sender, amount);
         IERC20(USDT).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
@@ -84,6 +107,7 @@ contract Pool is ReentrancyGuard {
         //balances[msg.sender][USDT] -= amount;
         loanBalances[msg.sender] -= amount;
         poolTotalBalance[USDT] += amount;
+        DUSDT.burn(msg.sender, amount);
         IERC20(USDT).safeTransferFrom(msg.sender, address(this), amount);
         emit transferSuccessful(msg.sender, amount);
     }
@@ -93,6 +117,7 @@ contract Pool is ReentrancyGuard {
         balances[msg.sender][ETH] += amount;
         poolTotalBalance[ETH] += amount;
         IERC20(ETH).safeTransferFrom(msg.sender, address(this), amount);
+        VETH.mint(msg.sender, amount); 
         emit transferSuccessful(msg.sender, amount);
     }
 
@@ -100,6 +125,7 @@ contract Pool is ReentrancyGuard {
         balances[msg.sender][BTC] += amount;
         poolTotalBalance[BTC] += amount;
         IERC20(BTC).safeTransferFrom(msg.sender, address(this), amount);
+        VBTC.mint(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
     // This function transfers tokens from the pool to the caller's address and burns a corresponding amount of virtual token from the caller's address
@@ -115,6 +141,7 @@ contract Pool is ReentrancyGuard {
     {
         balances[msg.sender][ETH] -= amount;
         poolTotalBalance[ETH] -= amount;
+        VETH.burn(msg.sender, amount);
         IERC20(ETH).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
@@ -127,14 +154,22 @@ contract Pool is ReentrancyGuard {
     {
         balances[msg.sender][BTC] -= amount;
         poolTotalBalance[BTC] -= amount;
-        IERC20(ETH).safeTransfer(msg.sender, amount);
+        VBTC.burn(msg.sender, amount);
+        IERC20(BTC).safeTransfer(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
 
-    function setHealthFactor() private {}
-    function getHealthFactor() public {}
+    function setHealthFactor() private {
+        //healthFactor = 6 / 5 ;
+    }
+    function getHealthFactor() public view returns (uint256) {
+        uint256 healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
+        return healthfactor;
+
+    }
     function getLoanBalance (address user) public view returns (uint256) {
         uint256 loanBalance = loanBalances[user];
         return loanBalance;
     }
+    
 }

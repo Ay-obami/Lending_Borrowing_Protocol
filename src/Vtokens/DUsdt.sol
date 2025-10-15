@@ -29,33 +29,42 @@ import { ERC20Burnable, ERC20 } from "@openzeppelin/contracts/token/ERC20/extens
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract Vbtc is ERC20Burnable, Ownable {
-    error Vbtc__AmountMustBeMoreThanZero();
-    error Vbtc__BurnAmountExceedsBalance();
-    error Vbtc__NotZeroAddress();
+contract Dusdt is ERC20Burnable, Ownable {
+    error Dusdt__AmountMustBeMoreThanZero();
+    error Dusdt__BurnAmountExceedsBalance();
+    error Dusdt__NotZeroAddress();
 
-    constructor() ERC20("Virtual BTC", "Vbtc") Ownable(msg.sender) { }
+    constructor() ERC20("Debt USDT", "Dusdt") Ownable(msg.sender) { }
 
     function burn(address user, uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(user);
         if (_amount <= 0) {
-            revert Vbtc__AmountMustBeMoreThanZero();
+            revert Dusdt__AmountMustBeMoreThanZero();
         }
         if (balance < _amount) {
-            revert Vbtc__BurnAmountExceedsBalance();
+            revert Dusdt__BurnAmountExceedsBalance();   
         }
         super.burn(user, _amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
         if (_to == address(0)) {
-            revert Vbtc__NotZeroAddress();
+            revert Dusdt__NotZeroAddress();
         }
         if (_amount <= 0) {
-            revert Vbtc__AmountMustBeMoreThanZero();
+            revert Dusdt__AmountMustBeMoreThanZero();
         }
         _mint(_to, _amount);
         return true;
     }
-    
+    function totalSupply() public override view returns (uint256) {
+       uint256 totalDebt = super.totalSupply();
+       return totalDebt;
+    }
+    function userBalance (address user) public view returns (uint256)  {
+
+    uint256 userDebt = balanceOf(user);
+    return userDebt;
+
+    }
 }
