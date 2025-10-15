@@ -36,15 +36,15 @@ contract Vusdt is ERC20Burnable, Ownable {
 
     constructor() ERC20("Virtual USDT", "Vusdt") Ownable(msg.sender) { }
 
-    function burn(uint256 _amount) public override onlyOwner {
-        uint256 balance = balanceOf(msg.sender);
+    function burn(address user, uint256 _amount) public override onlyOwner {
+        uint256 balance = balanceOf(user);
         if (_amount <= 0) {
             revert Vusdt__AmountMustBeMoreThanZero();
         }
         if (balance < _amount) {
             revert Vusdt__BurnAmountExceedsBalance();
         }
-        super.burn(_amount);
+        super.burn(user, _amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
@@ -56,5 +56,9 @@ contract Vusdt is ERC20Burnable, Ownable {
         }
         _mint(_to, _amount);
         return true;
+    }
+     function totalSupply() public override view returns (uint256) {
+       uint256 totalUsdtSupplied = super.totalSupply();
+       return totalUsdtSupplied;
     }
 }

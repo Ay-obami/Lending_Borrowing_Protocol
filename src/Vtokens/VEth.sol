@@ -36,15 +36,15 @@ contract Veth is ERC20Burnable, Ownable {
 
     constructor() ERC20("Virtual ETH", "Veth") Ownable(msg.sender) { }
 
-    function burn(uint256 _amount) public override onlyOwner {
-        uint256 balance = balanceOf(msg.sender);
+    function burn(address user, uint256 _amount) public override onlyOwner {
+        uint256 balance = balanceOf(user);
         if (_amount <= 0) {
             revert Veth__AmountMustBeMoreThanZero();
         }
         if (balance < _amount) {
             revert Veth__BurnAmountExceedsBalance();
         }
-        super.burn(_amount);
+        super.burn(user,_amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
