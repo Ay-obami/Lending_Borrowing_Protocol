@@ -39,13 +39,12 @@ contract Pool is ReentrancyGuard {
     Vbtc public immutable VBTC;
     Veth public immutable VETH;
     Dusdt public immutable DUSDT;
-    
 
     error amountShouldBeGreaterThanZero(string);
     error insufficientBalance(string);
 
-    address immutable BTC; // WETH Address 
-    address immutable ETH; // WBTC Address 
+    address immutable BTC; // WETH Address
+    address immutable ETH; // WBTC Address
     address immutable USDT;
     mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
@@ -71,7 +70,7 @@ contract Pool is ReentrancyGuard {
         ETH = _eth;
         USDT = _usdt;
 
-         // Deploy VTokens here
+        // Deploy VTokens here
         VUSDT = new Vusdt();
         VBTC = new Vbtc();
         VETH = new Veth();
@@ -79,7 +78,7 @@ contract Pool is ReentrancyGuard {
 
         // Transfer ownership of each VToken to this Pool
         //VUSDT.transferOwnership(address(this));
-       // VBTC.transferOwnership(address(this));
+        // VBTC.transferOwnership(address(this));
         //VETH.transferOwnership(address(this));
     }
 
@@ -117,7 +116,7 @@ contract Pool is ReentrancyGuard {
         balances[msg.sender][ETH] += amount;
         poolTotalBalance[ETH] += amount;
         IERC20(ETH).safeTransferFrom(msg.sender, address(this), amount);
-        VETH.mint(msg.sender, amount); 
+        VETH.mint(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
 
@@ -162,14 +161,14 @@ contract Pool is ReentrancyGuard {
     function setHealthFactor() private {
         //healthFactor = 6 / 5 ;
     }
+
     function getHealthFactor() public view returns (uint256) {
         uint256 healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
         return healthfactor;
-
     }
-    function getLoanBalance (address user) public view returns (uint256) {
+
+    function getLoanBalance(address user) public view returns (uint256) {
         uint256 loanBalance = loanBalances[user];
         return loanBalance;
     }
-    
 }
