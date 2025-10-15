@@ -39,20 +39,28 @@ contract Pool is ReentrancyGuard {
     Vbtc public immutable VBTC;
     Veth public immutable VETH;
     Dusdt public immutable DUSDT;
-    
 
     error amountShouldBeGreaterThanZero(string);
     error insufficientBalance(string);
+    error unHealthyHealthFactor(string);
 
-    address immutable BTC; // WETH Address 
-    address immutable ETH; // WBTC Address 
+    address immutable BTC; // WETH Address
+    address immutable ETH; // WBTC Address
     address immutable USDT;
+    uint256 healthyHealthFactor = 6 / 5;
     mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
     mapping(address => uint256) loanBalances;
 
     event transferSuccessful(address, uint256);
     event withdrawalSuccessful(address, uint256);
+
+    modifier ensureHealthFactorIsHealthy(uint256 amount) {
+        uint256 healthFactor = getHealthFactor(amount);
+        if (healthFactor <= healthyHealthFactor) {
+            revert unHealthyHeathFactor("Insufficient Liquidity");
+        }
+    }
 
     modifier mustBeGreaterThanZero(uint256 amount) {
         if (amount <= 0) {
@@ -71,7 +79,7 @@ contract Pool is ReentrancyGuard {
         ETH = _eth;
         USDT = _usdt;
 
-         // Deploy VTokens here
+        // Deploy VTokens here
         VUSDT = new Vusdt();
         VBTC = new Vbtc();
         VETH = new Veth();
@@ -79,7 +87,7 @@ contract Pool is ReentrancyGuard {
 
         // Transfer ownership of each VToken to this Pool
         //VUSDT.transferOwnership(address(this));
-       // VBTC.transferOwnership(address(this));
+        // VBTC.transferOwnership(address(this));
         //VETH.transferOwnership(address(this));
     }
 
@@ -94,7 +102,12 @@ contract Pool is ReentrancyGuard {
         emit transferSuccessful(msg.sender, amount);
     }
 
-    function borrowUsdt(uint256 amount) external mustBeGreaterThanZero(amount) nonReentrant {
+    function borrowUsdt(uint256 amount)
+        external
+        mustBeGreaterThanZero(amount)
+        nonReentrant
+        ensureHealthFactorIsHealthy(amount)
+    {
         //balances[msg.sender][USDT] += amount;
         loanBalances[msg.sender] += amount;
         poolTotalBalance[USDT] -= amount;
@@ -117,7 +130,7 @@ contract Pool is ReentrancyGuard {
         balances[msg.sender][ETH] += amount;
         poolTotalBalance[ETH] += amount;
         IERC20(ETH).safeTransferFrom(msg.sender, address(this), amount);
-        VETH.mint(msg.sender, amount); 
+        VETH.mint(msg.sender, amount);
         emit transferSuccessful(msg.sender, amount);
     }
 
@@ -143,7 +156,7 @@ contract Pool is ReentrancyGuard {
         poolTotalBalance[ETH] -= amount;
         VETH.burn(msg.sender, amount);
         IERC20(ETH).safeTransfer(msg.sender, amount);
-        emit transferSuccessful(msg.sender, amount);
+        emit withdrawalSuccessful(msg.sender, amount);
     }
 
     function withdrawBtc(uint256 amount)
@@ -156,20 +169,20 @@ contract Pool is ReentrancyGuard {
         poolTotalBalance[BTC] -= amount;
         VBTC.burn(msg.sender, amount);
         IERC20(BTC).safeTransfer(msg.sender, amount);
-        emit transferSuccessful(msg.sender, amount);
+        emit withdrawalSuccessful(msg.sender, amount);
     }
 
-    function setHealthFactor() private {
-        //healthFactor = 6 / 5 ;
-    }
-    function getHealthFactor() public view returns (uint256) {
-        uint256 healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
+    function getHealthFactor(uint256 amount) public view returns (uint256) {
+        if (amount == 0) {
+            uint256 healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
+        } else {
+            uint256 healthfactor = VUSDT.totalSupply() / (DUSDT.totalSupply() + amount);
+        }
         return healthfactor;
-
     }
-    function getLoanBalance (address user) public view returns (uint256) {
+
+    function getLoanBalance(address user) public view returns (uint256) {
         uint256 loanBalance = loanBalances[user];
         return loanBalance;
     }
-    
 }

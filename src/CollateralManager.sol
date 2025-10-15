@@ -6,16 +6,18 @@ import {Pool} from "src/Pool.sol";
 
 contract CollateralManager is Pool {
     mapping(address => mapping(address => uint256)) lockedBalances;
-    address priceFeed;
+
     AggregatorV3Interface internal ethUsdPriceFeed;
     AggregatorV3Interface internal btcUsdPriceFeed;
 
-    constructor(address _btc, address _eth, address _usdt) Pool(_btc, _eth, _usdt) {
+    constructor(address _btc, address _eth, address _usdt, address ethPriceFeed, address btcPriceFeed)
+        Pool(_btc, _eth, _usdt)
+    {
         // ETH/USD Chainlink Oracle
-        ethUsdPriceFeed = AggregatorV3Interface(priceFeed);
+        ethUsdPriceFeed = AggregatorV3Interface(ethPriceFeed);
 
         // BTC/USD Chainlink Oracle
-        btcUsdPriceFeed = AggregatorV3Interface(priceFeed);
+        btcUsdPriceFeed = AggregatorV3Interface(btcPriceFeed);
     }
 
     function getPrice(AggregatorV3Interface datafeed) internal view returns (uint256) {
