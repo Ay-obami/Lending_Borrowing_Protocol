@@ -25,16 +25,15 @@
 
 pragma solidity ^0.8.0;
 
-import { ERC20Burnable, ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
+import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Vbtc is ERC20Burnable, Ownable {
     error Vbtc__AmountMustBeMoreThanZero();
     error Vbtc__BurnAmountExceedsBalance();
     error Vbtc__NotZeroAddress();
 
-    constructor() ERC20("Virtual BTC", "Vbtc") Ownable(msg.sender) { }
+    constructor() ERC20("Virtual BTC", "Vbtc") Ownable(msg.sender) {}
 
     function burn(address user, uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(user);
@@ -57,5 +56,4 @@ contract Vbtc is ERC20Burnable, Ownable {
         _mint(_to, _amount);
         return true;
     }
-    
 }

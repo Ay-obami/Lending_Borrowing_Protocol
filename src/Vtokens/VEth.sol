@@ -25,16 +25,15 @@
 
 pragma solidity ^0.8.0;
 
-import { ERC20Burnable, ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
+import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Veth is ERC20Burnable, Ownable {
     error Veth__AmountMustBeMoreThanZero();
     error Veth__BurnAmountExceedsBalance();
     error Veth__NotZeroAddress();
 
-    constructor() ERC20("Virtual ETH", "Veth") Ownable(msg.sender) { }
+    constructor() ERC20("Virtual ETH", "Veth") Ownable(msg.sender) {}
 
     function burn(address user, uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(user);
@@ -44,7 +43,7 @@ contract Veth is ERC20Burnable, Ownable {
         if (balance < _amount) {
             revert Veth__BurnAmountExceedsBalance();
         }
-        super.burn(user,_amount);
+        super.burn(user, _amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
