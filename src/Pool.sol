@@ -175,11 +175,11 @@ contract Pool is ReentrancyGuard {
     }
 
     function getHealthFactor(uint256 amount) public view returns (uint256) {
-         uint256 healthfactor;
+        uint256 healthfactor;
         if (amount == 0) {
-             healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
+            healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
         } else {
-             healthfactor = VUSDT.totalSupply() / (DUSDT.totalSupply() + amount);
+            healthfactor = VUSDT.totalSupply() / (DUSDT.totalSupply() + amount);
         }
         return healthfactor;
     }
