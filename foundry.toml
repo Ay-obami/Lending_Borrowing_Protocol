@@ -3,7 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 remappings = [
-  '@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/', '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/', '@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol=lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol'
+  '@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/', '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/', '@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol=lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol', '@forge-std/=lib/forge-std/'
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

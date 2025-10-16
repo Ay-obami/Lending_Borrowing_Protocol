@@ -47,7 +47,8 @@ contract Pool is ReentrancyGuard {
     address immutable BTC; // WETH Address
     address immutable ETH; // WBTC Address
     address immutable USDT;
-    uint256 healthyHealthFactor = 6 / 5;
+    uint256 decimalPrecision = 1e18;
+    uint256 healthyHealthFactor = (6 * decimalPrecision) / 5;
     mapping(address => mapping(address => uint256)) balances;
     mapping(address => uint256) poolTotalBalance;
     mapping(address => uint256) loanBalances;
@@ -58,8 +59,9 @@ contract Pool is ReentrancyGuard {
     modifier ensureHealthFactorIsHealthy(uint256 amount) {
         uint256 healthFactor = getHealthFactor(amount);
         if (healthFactor <= healthyHealthFactor) {
-            revert unHealthyHeathFactor("Insufficient Liquidity");
+            revert unHealthyHealthFactor("Insufficient Liquidity");
         }
+        _;
     }
 
     modifier mustBeGreaterThanZero(uint256 amount) {
@@ -173,10 +175,11 @@ contract Pool is ReentrancyGuard {
     }
 
     function getHealthFactor(uint256 amount) public view returns (uint256) {
+         uint256 healthfactor;
         if (amount == 0) {
-            uint256 healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
+             healthfactor = VUSDT.totalSupply() / DUSDT.totalSupply();
         } else {
-            uint256 healthfactor = VUSDT.totalSupply() / (DUSDT.totalSupply() + amount);
+             healthfactor = VUSDT.totalSupply() / (DUSDT.totalSupply() + amount);
         }
         return healthfactor;
     }
