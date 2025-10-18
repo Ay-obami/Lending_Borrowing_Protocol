@@ -242,7 +242,7 @@ contract PoolTest is Test {
         pool.borrowUsdt(borrowAmt);
 
         // Pool should have transferred USDT to bob -> bob's usdt balance increased by borrowAmt
-        assertEq(usdt.balanceOf(bob) , borrowAmt + 1000 ether , "Borrower received usdt");
+        assertEq(usdt.balanceOf(bob), borrowAmt + 1000 ether, "Borrower received usdt");
 
         // DUSDT should be minted to bob representing debt
         Dusdt dusdt = pool.DUSDT();
