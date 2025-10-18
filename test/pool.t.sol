@@ -13,88 +13,9 @@ import {Vbtc} from "src/Vtokens/VBtc.sol";
 import {Veth} from "src/Vtokens/VEth.sol";
 import {Dusdt} from "src/Vtokens/DUsdt.sol";
 
-/// @dev Simple mintable ERC20 used in tests when not running on Sepolia
-contract MockERC20 {
-    string public name;
-    string public symbol;
-    uint8 public decimals = 18;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-    uint256 public totalSupply;
-
-    constructor(string memory _name, string memory _symbol) {
-        name = _name;
-        symbol = _symbol;
-    }
-
-    function transfer(address to, uint256 amount) external returns (bool) {
-        require(balanceOf[msg.sender] >= amount, "Insufficient");
-        balanceOf[msg.sender] -= amount;
-        balanceOf[to] += amount;
-        return true;
-    }
-
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
-        uint256 allowed = allowance[from][msg.sender];
-        if (msg.sender != from) {
-            require(allowed >= amount, "Allowance");
-            allowance[from][msg.sender] = allowed - amount;
-        }
-        require(balanceOf[from] >= amount, "Insufficient");
-        balanceOf[from] -= amount;
-        balanceOf[to] += amount;
-        return true;
-    }
-
-    function approve(address spender, uint256 amount) external returns (bool) {
-        allowance[msg.sender][spender] = amount;
-        return true;
-    }
-
-    function mint(address to, uint256 amount) external {
-        balanceOf[to] += amount;
-        totalSupply += amount;
-    }
-}
-
-/// @dev Minimal Chainlink Aggregator mock for local tests
-contract MockAggregator is AggregatorV3Interface {
-    int256 private answer;
-    uint8 private _decimals;
-    uint80 private roundId;
-
-    constructor(int256 _answer, uint8 decimals_) {
-        answer = _answer;
-        _decimals = decimals_;
-        roundId = 1;
-    }
-
-    function decimals() external view returns (uint8) {
-        return _decimals;
-    }
-
-    function description() external pure returns (string memory) {
-        return "Mock";
-    }
-
-    function version() external pure returns (uint256) {
-        return 1;
-    }
-
-    function getRoundData(uint80) external view returns (uint80, int256, uint256, uint256, uint80) {
-        return (roundId, answer, block.timestamp, block.timestamp, roundId);
-    }
-
-    function latestRoundData() external view override returns (uint80, int256, uint256, uint256, uint80) {
-        return (roundId, answer, block.timestamp, block.timestamp, roundId);
-    }
-
-    // helper to update mock price in tests
-    function setAnswer(int256 _answer) external {
-        answer = _answer;
-        roundId++;
-    }
-}
+//Mocks
+import {MockERC20} from "test/Mocks/MockERC20.sol";
+import {MockAggregator} from "test/Mocks/MockAggregator.sol";
 
 contract PoolTest is Test {
     // Contracts under test
