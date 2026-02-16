@@ -25,7 +25,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC20Burnable, ERC20} from "src/ERC20Burnable.sol";
+import {ERC20Burnable, ERC20} from "src/core/ERC20Burnable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Vbtc is ERC20Burnable, Ownable {

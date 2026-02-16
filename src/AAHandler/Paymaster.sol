@@ -2,17 +2,17 @@
 pragma solidity ^0.8.23;
 
 import {BasePaymaster} from "@account-abstraction/contracts/core/BasePaymaster.sol";
-import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
-import {PackedUserOperation} from "@account-abstraction/interfaces/PackedUserOperation.sol";
-import {UserOperationLib} from "@account-abstraction/core/UserOperationLib.sol";
-import {_packValidationData, calldataKeccak} from "@account-abstraction/core/Helpers.sol";
+import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint.sol";
+import {PackedUserOperation} from "@account-abstraction/contracts/interfaces/PackedUserOperation.sol";
+import {UserOperationLib} from "@account-abstraction/contracts/core/UserOperationLib.sol";
+import {_packValidationData, calldataKeccak} from "@account-abstraction/contracts/core/Helpers.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /// @title MinimalPaymaster
 /// @notice Simple paymaster for gasless onboarding with signature verification
-contract Paymaster is BasePaymaster, Ownable2Step {
+contract Paymaster is BasePaymaster {
     using UserOperationLib for PackedUserOperation;
 
     /// @notice Paymaster data structure
@@ -42,8 +42,8 @@ contract Paymaster is BasePaymaster, Ownable2Step {
     /// @param initialVerifyingSigner Address that can authorize sponsorships
     /// @param initialOwner Contract owner
     constructor(IEntryPoint entryPoint, address initialVerifyingSigner, address initialOwner)
-        BasePaymaster(entryPoint)
-        Ownable2Step()
+        BasePaymaster(entryPoint, initialOwner)
+        
     {
         _transferOwnership(initialOwner);
         verifyingSigner = initialVerifyingSigner;
@@ -51,7 +51,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
 
     /// @notice Receive ETH and deposit it into the EntryPoint
     receive() external payable {
-        (bool success,) = payable(address(entryPoint)).call{value: address(this).balance}("");
+        (bool success,) = payable(address(_entryPoint)).call{value: address(this).balance}("");
         if (!success) {
             revert DepositFailed();
         }
@@ -74,7 +74,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
     {
         paymasterData.validUntil = uint48(bytes6(paymasterAndData[0:6]));
         paymasterData.validAfter = uint48(bytes6(paymasterAndData[6:12]));
-        signature = paymasterAndData[12:];
+        signature = paymasterAndData[12:77];
     }
 
     /// @notice Get the hash to be signed for authorization
@@ -88,7 +88,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
     {
         return keccak256(
             abi.encode(
-                userOp.getSender(),
+                userOp.sender,
                 userOp.nonce,
                 calldataKeccak(userOp.initCode),
                 calldataKeccak(userOp.callData),
@@ -110,7 +110,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
     /// @return context Context for postOp
     /// @return validationData Validation result and time range
     function _validatePaymasterUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 maxCost)
-        internal
+        internal view
         override
         returns (bytes memory context, uint256 validationData)
     {
@@ -149,7 +149,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
 
     /// @notice Transfer ownership (Ownable2Step override)
     /// @param newOwner New owner address
-    function transferOwnership(address newOwner) public override(Ownable2Step, Ownable) onlyOwner {
+    function transferOwnership(address newOwner) public override(Ownable2Step) onlyOwner {
         Ownable2Step.transferOwnership(newOwner);
     }
 
@@ -160,7 +160,7 @@ contract Paymaster is BasePaymaster, Ownable2Step {
 
     /// @notice Internal ownership transfer (Ownable2Step override)
     /// @param newOwner New owner address
-    function _transferOwnership(address newOwner) internal override(Ownable2Step, Ownable) {
+    function _transferOwnership(address newOwner) internal override(Ownable2Step) {
         Ownable2Step._transferOwnership(newOwner);
     }
 }

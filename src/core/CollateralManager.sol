@@ -2,7 +2,7 @@
 pragma solidity ^0.8.7;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import {Pool} from "src/Pool.sol";
+import {Pool} from "src/core/Pool.sol";
 
 contract CollateralManager is Pool {
     mapping(address => mapping(address => uint256)) lockedBalances;

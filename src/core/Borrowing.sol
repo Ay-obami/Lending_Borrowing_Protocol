@@ -1,8 +1,8 @@
 //SPDX-License-Identifier:MIT
 pragma solidity ^0.8.0;
 
-import {Pool} from "src/Pool.sol";
-import {CollateralManager} from "src/CollateralManager.sol";
+import {Pool} from "src/core/Pool.sol";
+import {CollateralManager} from "src/core/CollateralManager.sol";
 
 contract Borrowing {
     CollateralManager collateralManager;
