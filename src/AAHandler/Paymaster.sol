@@ -43,7 +43,6 @@ contract Paymaster is BasePaymaster {
     /// @param initialOwner Contract owner
     constructor(IEntryPoint entryPoint, address initialVerifyingSigner, address initialOwner)
         BasePaymaster(entryPoint, initialOwner)
-        
     {
         _transferOwnership(initialOwner);
         verifyingSigner = initialVerifyingSigner;
@@ -110,7 +109,8 @@ contract Paymaster is BasePaymaster {
     /// @return context Context for postOp
     /// @return validationData Validation result and time range
     function _validatePaymasterUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 maxCost)
-        internal view
+        internal
+        view
         override
         returns (bytes memory context, uint256 validationData)
     {

@@ -62,7 +62,7 @@ contract Pool is ReentrancyGuard {
     }
 
     modifier mustBeGreaterThanZero(uint256 amount) {
-       _mustBeGreaterThanZero(amount);
+        _mustBeGreaterThanZero(amount);
         _;
     }
 
@@ -187,21 +187,21 @@ contract Pool is ReentrancyGuard {
         uint256 loanBalance = loanBalances[user];
         return loanBalance;
     }
-    function _ensureHealthFactorIsHealthy(uint256 amount)internal view {
+
+    function _ensureHealthFactorIsHealthy(uint256 amount) internal view {
         uint256 healthFactor = getHealthFactor(amount);
         if (healthFactor <= healthyHealthFactor) {
             revert unHealthyHealthFactor("Insufficient Liquidity");
         }
-        
     }
-    function _mustBeGreaterThanZero(uint256 amount) internal pure{
+
+    function _mustBeGreaterThanZero(uint256 amount) internal pure {
         if (amount <= 0) {
             revert amountShouldBeGreaterThanZero("Amount should be more than zero");
         }
     }
+
     function _balanceMustBeSufficient(uint256 amount, address user, address token) internal view {
         require(balances[user][token] >= amount, "Insufficient Balance");
-        
     }
-
 }
