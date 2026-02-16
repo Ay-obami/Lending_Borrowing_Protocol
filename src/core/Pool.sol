@@ -27,10 +27,10 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Vusdt} from "src/Vtokens/VUsdt.sol";
-import {Vbtc} from "src/Vtokens/VBtc.sol";
-import {Veth} from "src/Vtokens/VEth.sol";
-import {Dusdt} from "src/Vtokens/DUsdt.sol";
+import {Vusdt} from "src/core/Vtokens/VUsdt.sol";
+import {Vbtc} from "src/core/Vtokens/VBtc.sol";
+import {Veth} from "src/core/Vtokens/VEth.sol";
+import {Dusdt} from "src/core/Vtokens/DUsdt.sol";
 
 contract Pool is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -57,22 +57,17 @@ contract Pool is ReentrancyGuard {
     event withdrawalSuccessful(address, uint256);
 
     modifier ensureHealthFactorIsHealthy(uint256 amount) {
-        uint256 healthFactor = getHealthFactor(amount);
-        if (healthFactor <= healthyHealthFactor) {
-            revert unHealthyHealthFactor("Insufficient Liquidity");
-        }
+        _ensureHealthFactorIsHealthy(amount);
         _;
     }
 
     modifier mustBeGreaterThanZero(uint256 amount) {
-        if (amount <= 0) {
-            revert amountShouldBeGreaterThanZero("Amount should be more than zero");
-        }
+       _mustBeGreaterThanZero(amount);
         _;
     }
 
     modifier balanceMustBeSufficient(uint256 amount, address user, address token) {
-        require(balances[user][token] >= amount, "Insufficient Balance");
+        _balanceMustBeSufficient(amount, user, token);
         _;
     }
 
@@ -192,4 +187,21 @@ contract Pool is ReentrancyGuard {
         uint256 loanBalance = loanBalances[user];
         return loanBalance;
     }
+    function _ensureHealthFactorIsHealthy(uint256 amount)internal view {
+        uint256 healthFactor = getHealthFactor(amount);
+        if (healthFactor <= healthyHealthFactor) {
+            revert unHealthyHealthFactor("Insufficient Liquidity");
+        }
+        
+    }
+    function _mustBeGreaterThanZero(uint256 amount) internal pure{
+        if (amount <= 0) {
+            revert amountShouldBeGreaterThanZero("Amount should be more than zero");
+        }
+    }
+    function _balanceMustBeSufficient(uint256 amount, address user, address token) internal view {
+        require(balances[user][token] >= amount, "Insufficient Balance");
+        
+    }
+
 }

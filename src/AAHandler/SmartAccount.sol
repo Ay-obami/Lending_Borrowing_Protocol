@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IAccount} from "@account-abstraction/interfaces/IAccount.sol";
-import {PackedUserOperation} from "@account-abstraction/interfaces/PackedUserOperation.sol";
+import {IAccount} from "@account-abstraction/contracts/interfaces/IAccount.sol";
+import {PackedUserOperation} from "@account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint.sol";
 
 contract SimpleSmartAccount is IAccount {
     address public owner;
-    IEntryPoint public immutable entryPoint;
+    IEntryPoint public immutable ENTRYPOINT;
 
     constructor(IEntryPoint _entryPoint, address _owner) {
-        entryPoint = _entryPoint;
+        ENTRYPOINT = _entryPoint;
         owner = _owner;
     }
 
@@ -20,7 +21,7 @@ contract SimpleSmartAccount is IAccount {
         external
         returns (uint256 validationData)
     {
-        require(msg.sender == address(entryPoint), "only EntryPoint");
+        require(msg.sender == address(ENTRYPOINT), "only EntryPoint");
 
         // Verify signature
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(userOpHash);
@@ -41,7 +42,7 @@ contract SimpleSmartAccount is IAccount {
 
     // Execute calls
     function execute(address dest, uint256 value, bytes calldata func) external {
-        require(msg.sender == address(entryPoint), "only EntryPoint");
+        require(msg.sender == address(ENTRYPOINT), "only EntryPoint");
         (bool success, bytes memory result) = dest.call{value: value}(func);
         require(success, string(result));
     }

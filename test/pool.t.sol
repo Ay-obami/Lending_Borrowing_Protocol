@@ -6,12 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 // Import contracts
-import {Pool} from "src/Pool.sol";
-import {CollateralManager} from "src/CollateralManager.sol";
-import {Vusdt} from "src/Vtokens/VUsdt.sol";
-import {Vbtc} from "src/Vtokens/VBtc.sol";
-import {Veth} from "src/Vtokens/VEth.sol";
-import {Dusdt} from "src/Vtokens/DUsdt.sol";
+import {Pool} from "src/core/Pool.sol";
+import {CollateralManager} from "src/core/CollateralManager.sol";
+import {Vusdt} from "src/core/Vtokens/VUsdt.sol";
+import {Vbtc} from "src/core/Vtokens/VBtc.sol";
+import {Veth} from "src/core/Vtokens/VEth.sol";
+import {Dusdt} from "src/core/Vtokens/DUsdt.sol";
 
 //Mocks
 import {MockERC20} from "test/Mocks/MockERC20.sol";
