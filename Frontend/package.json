@@ -1,0 +1,57 @@
+{
+  "name": "se-2",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "account": "npm run foundry:account",
+    "account:generate": "npm run foundry:generate",
+    "account:import": "npm run foundry:account-import",
+    "account:reveal-pk": "npm run account:reveal-pk --workspace=packages/foundry",
+    "chain": "npm run foundry:chain",
+    "compile": "npm run foundry:compile",
+    "deploy": "npm run foundry:deploy",
+    "flatten": "npm run foundry:flatten",
+    "fork": "npm run foundry:fork",
+    "format": "npm run next:format && npm run foundry:format",
+    "foundry:account": "npm run account --workspace=packages/foundry",
+    "foundry:account-import": "npm run account:import --workspace=packages/foundry",
+    "foundry:chain": "npm run chain --workspace=packages/foundry",
+    "foundry:clean": "npm run clean --workspace=packages/foundry",
+    "foundry:compile": "npm run compile --workspace=packages/foundry",
+    "foundry:deploy": "npm run deploy --workspace=packages/foundry",
+    "foundry:deploy-verify": "npm run deploy:verify --workspace=packages/foundry",
+    "foundry:flatten": "npm run flatten --workspace=packages/foundry",
+    "foundry:fork": "npm run fork --workspace=packages/foundry",
+    "foundry:format": "npm run format --workspace=packages/foundry",
+    "foundry:generate": "npm run account:generate --workspace=packages/foundry",
+    "foundry:lint": "npm run lint --workspace=packages/foundry",
+    "foundry:test": "npm run test --workspace=packages/foundry",
+    "foundry:verify": "npm run verify --workspace=packages/foundry",
+    "generate": "npm run foundry:generate",
+    "prepare": "husky install",
+    "ipfs": "npm run ipfs --workspace=packages/nextjs",
+    "lint": "npm run next:lint && npm run foundry:lint",
+    "next:build": "npm run build --workspace=packages/nextjs",
+    "next:check-types": "npm run check-types --workspace=packages/nextjs",
+    "next:format": "npm run format --workspace=packages/nextjs",
+    "next:lint": "npm run lint --workspace=packages/nextjs",
+    "next:serve": "npm run serve --workspace=packages/nextjs",
+    "precommit": "lint-staged",
+    "start": "npm run dev --workspace=packages/nextjs",
+    "test": "npm run foundry:test",
+    "vercel": "npm run vercel --workspace=packages/nextjs",
+    "vercel:login": "npm run vercel:login --workspace=packages/nextjs",
+    "vercel:yolo": "npm run vercel:yolo --workspace=packages/nextjs",
+    "verify": "npm run foundry:verify"
+  },
+  "devDependencies": {
+    "husky": "~9.1.6",
+    "lint-staged": "~13.2.2"
+  },
+  "engines": {
+    "node": ">=20.18.3"
+  }
+}
