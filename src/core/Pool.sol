@@ -23,10 +23,8 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
+/*
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Vusdt} from "src/core/Vtokens/VUsdt.sol";
 import {Vbtc} from "src/core/Vtokens/VBtc.sol";
 import {Veth} from "src/core/Vtokens/VEth.sol";
@@ -35,10 +33,6 @@ import {Dusdt} from "src/core/Vtokens/DUsdt.sol";
 contract Pool is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    Vusdt public immutable VUSDT;
-    Vbtc public immutable VBTC;
-    Veth public immutable VETH;
-    Dusdt public immutable DUSDT;
 
     error amountShouldBeGreaterThanZero(string);
     error insufficientBalance(string);
@@ -205,3 +199,10 @@ contract Pool is ReentrancyGuard {
         require(balances[user][token] >= amount, "Insufficient Balance");
     }
 }
+*/
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {InterestCalculator} from "./InterestCalculator.sol";
+
+contract Pool {}
