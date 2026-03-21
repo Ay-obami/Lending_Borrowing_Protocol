@@ -63,4 +63,8 @@ contract InterestCalculator {
         uint256 currentIndex = liquidityIndex * (RAY + rate * timeElapsed / YEAR_IN_SECONDS) / RAY;
         return userScaledBalance * currentIndex / RAY;
     }
+
+    function getLiquidityIndex() external view returns (uint256) {
+        return liquidityIndex;
+    }
 }

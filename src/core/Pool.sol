@@ -204,5 +204,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {InterestCalculator} from "./InterestCalculator.sol";
+import {CollateralManager} from "./CollateralManager.sol";
+import {Borrowing} from "./Borrowing.sol";
 
 contract Pool {}
