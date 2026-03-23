@@ -9,15 +9,22 @@ contract Borrowing {
     using SafeERC20 for IERC20;
 
     InterestCalculator public borrowInterestCalculator;
-    IERC20 public borrowedToken;
     uint256 public constant RAY = 1e18;
     uint256 public totalScaledBorrowed;
 
     mapping(address => uint256) public scaledBorrowedAmounts;
 
-    constructor(address _borrowedToken) {
-        borrowedToken = IERC20(_borrowedToken);
-        borrowInterestCalculator = new InterestCalculator(0.1e18, 0.8e18, 0.1e18, 0.2e18, 0.1e18, false);
+    constructor(
+        uint256 _baseInterestRate,
+        uint256 _optimalUtilizationRate,
+        uint256 _slope1,
+        uint256 _slope2,
+        uint256 _reserveFactor,
+        bool _isSupplyInterestCalculator
+    ) {
+        borrowInterestCalculator = new InterestCalculator(
+            _baseInterestRate, _optimalUtilizationRate, _slope1, _slope2, _reserveFactor, _isSupplyInterestCalculator
+        );
     }
 
     function borrow(address borrower, uint256 amount, uint256 utilizationRate) external {
@@ -27,7 +34,6 @@ contract Borrowing {
         require(scaledAmount > 0, "Invalid borrow amount");
         scaledBorrowedAmounts[borrower] += scaledAmount;
         totalScaledBorrowed += scaledAmount;
-        borrowedToken.safeTransfer(borrower, amount);
     }
 
     function repay(address borrower, uint256 amount, uint256 utilizationRate) external {
@@ -36,7 +42,6 @@ contract Borrowing {
         uint256 scaledAmount = amount * RAY / liquidityIndex;
         require(scaledAmount > 0, "Invalid repay amount");
         require(scaledBorrowedAmounts[borrower] >= scaledAmount, "Repay amount exceeds borrowed amount");
-        borrowedToken.safeTransferFrom(borrower, address(this), amount);
         totalScaledBorrowed -= scaledAmount;
         scaledBorrowedAmounts[borrower] -= scaledAmount;
     }
@@ -49,7 +54,7 @@ contract Borrowing {
         return borrowInterestCalculator.getBalance(scaledBorrowedAmounts[borrower], utilizationRate);
     }
 
-    function getTotalBorrowed(uint256 utilizationRate) external view returns (uint256) {
-        return borrowInterestCalculator.getBalance(totalScaledBorrowed, utilizationRate);
+    function getTotalBorrowed() external view returns (uint256) {
+        return totalScaledBorrowed * borrowInterestCalculator.getLiquidityIndex() / RAY;
     }
 }

@@ -206,5 +206,88 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {InterestCalculator} from "./InterestCalculator.sol";
 import {CollateralManager} from "./CollateralManager.sol";
 import {Borrowing} from "./Borrowing.sol";
+import {PriceFeeds} from "./PriceFeeds.sol";
 
-contract Pool {}
+contract Pool {
+    address public immutable ethTokenAddress; //WETH Address
+    using SafeERC20 for IERC20;
+    CollateralManager public ethCollateralManager;
+    Borrowing public ethBorrowing;
+    IERC20 public ethToken;
+    address public immutable usdtTokenAddress;
+    CollateralManager public usdtCollateralManager;
+    Borrowing public usdtBorrowing;
+    IERC20 public usdtToken;
+    PriceFeeds public ethPriceFeed;
+
+    constructor(address _ethTokenAddress, address _usdtTokenAddress, address _ethPriceFeedAddress) {
+        ethTokenAddress = _ethTokenAddress;
+        ethCollateralManager = new CollateralManager(
+            0.1e18,
+            0.8e18,
+            0.1e18,
+            0.2e18,
+            0.1e18,
+            true, // isSupplyInterestCalculator = true
+            address(this) // Pool is the liquidation manager
+        );
+
+        ethBorrowing = new Borrowing(0.1e18, 0.8e18, 0.1e18, 0.2e18, 0.1e18, false);
+        ethToken = IERC20(ethTokenAddress);
+
+        usdtTokenAddress = _usdtTokenAddress;
+        usdtCollateralManager = new CollateralManager(
+            0.1e18,
+            0.8e18,
+            0.1e18,
+            0.2e18,
+            0.1e18,
+            true, // isSupplyInterestCalculator = true
+            address(this) // Pool is the liquidation manager
+        );
+
+        usdtBorrowing = new Borrowing(0.1e18, 0.8e18, 0.1e18, 0.2e18, 0.1e18, false);
+        usdtToken = IERC20(usdtTokenAddress);
+
+        ethPriceFeed = new PriceFeeds(_ethPriceFeedAddress);
+    }
+
+    function depositETH(uint256 amount) external {
+        uint256 utilizationRate = getEthUtilizationRate();
+        ethCollateralManager.deposit(amount, utilizationRate);
+        ethToken.safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function withdrawETH(uint256 amount) external {
+        uint256 utilizationRate = getEthUtilizationRate();
+        ethCollateralManager.withdraw(amount, utilizationRate);
+        ethToken.safeTransfer(msg.sender, amount);
+    }
+
+    function borrowETHWithUSDTAsCollateral(uint256 amount) external {
+        uint256 utilizationRate = getEthUtilizationRate();
+        uint256 amountInUsd = (amount * getEthPrice()) / 1e18; // Convert ETH amount to USD using price feed
+        uint256 requiredCollateral = amountInUsd * 150 / 100; // 150%
+        require(
+            usdtCollateralManager.getUserBalance(msg.sender, utilizationRate) >= requiredCollateral,
+            "Insufficient collateral"
+        );
+        usdtCollateralManager.lockCollateral(msg.sender, requiredCollateral, utilizationRate);
+        ethBorrowing.borrow(msg.sender, amount, utilizationRate);
+        ethToken.safeTransfer(msg.sender, amount);
+    }
+
+    function getEthUtilizationRate() public view returns (uint256) {
+        uint256 totalBorrowed = ethBorrowing.getTotalBorrowed();
+        uint256 totalDeposits = ethCollateralManager.getPoolBalance();
+        if (totalDeposits == 0) {
+            return 0;
+        }
+        return (totalBorrowed * 1e18) / totalDeposits;
+    }
+
+    function getEthPrice() public view returns (uint256) {
+        uint256 ethPrice = uint256(ethPriceFeed.getLatestPrice());
+        return ethPrice;
+    }
+}
