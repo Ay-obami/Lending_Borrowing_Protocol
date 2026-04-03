@@ -8,7 +8,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {PriceFeeds} from "./PriceFeeds.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Pool2  {
+contract Pool2 {
     /*
     using SafeERC20 for IERC20;
 
@@ -305,4 +305,5 @@ contract Pool2  {
         return uint256(price);
     }
     */
-}
+
+    }
