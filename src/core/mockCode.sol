@@ -8,7 +8,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {PriceFeeds} from "./PriceFeeds.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Pool is Ownable, ReentrancyGuard {
+contract Pool2  {
+    /*
     using SafeERC20 for IERC20;
 
     struct ReserveData {
@@ -121,7 +122,7 @@ contract Pool is Ownable, ReentrancyGuard {
         reserveData.totalDeposits += amount;
 
         uint256 scaledAmount = (amount * RAY) / reserveData.supplyLiquidityIndex;
-        userScaledDeposits[msg.sender][reserveName] += scaledAmount;
+        userScaledDeposits[reserveName][msg.sender] += scaledAmount;
     }
 
     function withdraw(string memory reserveName, uint256 amount) public nonReentrant {
@@ -129,17 +130,15 @@ contract Pool is Ownable, ReentrancyGuard {
 
         _updateLiquidityIndexes(reserveData);
 
-        uint256 scaledAmount = (amount * RAY) * reserveData.supplyLiquidityIndex;
-
         uint256 availableLiquidity = reserveData.totalDeposits - reserveData.totalBorrows;
         require(amount <= availableLiquidity, "Insufficient pool liquidity");
 
-        require(userScaledDeposits[msg.sender][reserveName] >= scaledAmount, "Insufficient user balance");
-        userScaledDeposits[msg.sender][reserveName] -= scaledAmount;
+        uint256 scaledAmount = (amount * RAY) / reserveData.supplyLiquidityIndex;
+        require(userScaledDeposits[reserveName][msg.sender] >= scaledAmount, "Insufficient user balance");
 
         IERC20(reserveData.tokenAddress).safeTransfer(msg.sender, amount);
 
-        userScaledDeposits[msg.sender][reserveName] -= scaledAmount;
+        userScaledDeposits[reserveName][msg.sender] -= scaledAmount;
         reserveData.totalDeposits -= amount;
     }
 
@@ -159,12 +158,12 @@ contract Pool is Ownable, ReentrancyGuard {
 
     function getUserDepositBalance(string memory reserveName, address user) public view returns (uint256) {
         ReserveData storage reserveData = reserves[reserveName];
-        return (userScaledDeposits[user][reserveName] * reserveData.supplyLiquidityIndex) / RAY;
+        return (userScaledDeposits[reserveName][user] * reserveData.supplyLiquidityIndex) / RAY;
     }
 
     function getUserBorrowBalance(string memory reserveName, address user) public view returns (uint256) {
         ReserveData storage reserveData = reserves[reserveName];
-        return (userScaledBorrows[user][reserveName] * reserveData.borrowLiquidityIndex) / RAY;
+        return (userScaledBorrows[reserveName][user] * reserveData.borrowLiquidityIndex) / RAY;
     }
 
     function getUtilizationRate(string memory reserveName) public view returns (uint256) {
@@ -305,4 +304,5 @@ contract Pool is Ownable, ReentrancyGuard {
         int256 price = PriceFeeds(tokenPriceFeedAddress).getLatestPrice();
         return uint256(price);
     }
+    */
 }
