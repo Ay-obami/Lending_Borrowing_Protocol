@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 import {InterestCalculator} from "./InterestCalculator.sol";
 
 contract CollateralManager {
+    /*
     InterestCalculator public supplyInterestCalculator;
     address public liquidationManager;
     uint256 public constant RAY = 1e18;
@@ -83,4 +84,6 @@ contract CollateralManager {
     function getTotalDepositsWithInterest(uint256 utilizationRate) external view returns (uint256) {
         return supplyInterestCalculator.getBalance(totalScaledDeposits, utilizationRate); // fix: use scaled total
     }
-}
+    */
+
+    }

@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+#boilerplate contract
+Lending_Borrowing_Protocol/src/core/mockCode.sol
