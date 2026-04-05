@@ -23,7 +23,7 @@ contract Pool is Ownable, ReentrancyGuard {
         uint256 slope2;
         uint256 baseInterestRate;
         uint256 optimalUtilization;
-        uint256 liquidationBonus;
+        uint256 liquidationBonus; // Percentage
         uint256 reserveFactor;
         uint256 borrowCap;
         uint256 supplyCap;
@@ -36,7 +36,9 @@ contract Pool is Ownable, ReentrancyGuard {
 
     struct Position {
         string collateralAsset;
+        address collateralAssetPriceFeed;
         string borrowAsset;
+        address borrowAssetPriceFeed;
         uint256 scaledDebt;
         uint256 collateralLocked;
         uint256 bufferPercent;
@@ -214,6 +216,7 @@ contract Pool is Ownable, ReentrancyGuard {
         _updateLiquidityIndexes(collateralData);
         _updateLiquidityIndexes(assetTobeBorrowedData);
 
+        // Checks
         require(assetTobeBorrowedData.isBorrowable, "Asset not borrowable");
         require(bufferPercent >= MIN_BUFFER, "Buffer too low");
         require(bufferPercent <= MAX_BUFFER, "Buffer too high");
@@ -221,25 +224,30 @@ contract Pool is Ownable, ReentrancyGuard {
         require(
             ((amount + assetTobeBorrowedData.totalBorrows) * RAY) / assetTobeBorrowedData.totalDeposits
                 < MAX_UTILIZATION,
-            "Max utilization exceeded"
+            "Liquidity ratio too low"
         );
 
         uint256 borrowAmountInUsd = (getPrice(assetTobeBorrowedData.priceFeed) * amount) / RAY;
         uint256 minimumCollateralInUsd = (borrowAmountInUsd * RAY) / collateralData.ltv;
         uint256 collateralToLockInUsd = (minimumCollateralInUsd * (RAY + bufferPercent)) / RAY;
+        uint256 collateralToLock = (collateralToLockInUsd * RAY) / getPrice(collateralData.priceFeed);
 
-        uint256 rawCollateralToLock = (collateralToLockInUsd * RAY) / getPrice(collateralData.priceFeed);
-        uint256 collateralToLock = (rawCollateralToLock * RAY) / collateralData.supplyLiquidityIndex;
+        uint256 actualDeposits =
+            (userScaledDeposits[msg.sender][collateralData.reserveName] * collateralData.supplyLiquidityIndex) / RAY;
+        require(actualDeposits >= collateralToLock, "Insufficient free collateral");
 
-        uint256 freeCollateral = userScaledDeposits[msg.sender][collateralData.reserveName];
-        require(freeCollateral >= collateralToLock, "Insufficient free collateral");
+        uint256 remaining = actualDeposits - collateralToLock;
+        userScaledDeposits[msg.sender][collateralData.reserveName] =
+            (remaining * RAY) / collateralData.supplyLiquidityIndex;
 
         uint256 scaledAmount = (amount * RAY) / assetTobeBorrowedData.borrowLiquidityIndex;
 
         uint256 positionId = userPositionCount[msg.sender];
         userPositions[msg.sender][positionId] = Position({
             collateralAsset: collateralData.reserveName,
+            collateralAssetPriceFeed: collateralData.priceFeed,
             borrowAsset: assetTobeBorrowedData.reserveName,
+            borrowAssetPriceFeed: assetTobeBorrowedData.priceFeed,
             scaledDebt: scaledAmount,
             collateralLocked: collateralToLock,
             bufferPercent: bufferPercent
@@ -248,12 +256,9 @@ contract Pool is Ownable, ReentrancyGuard {
 
         assetTobeBorrowedData.totalBorrows += amount;
 
-        userScaledDeposits[msg.sender][collateralData.reserveName] -= collateralToLock;
         userLockedCollateral[msg.sender][collateralData.reserveName] += collateralToLock;
 
         userScaledBorrows[msg.sender][assetTobeBorrowedData.reserveName] += scaledAmount;
-
-        IERC20(assetTobeBorrowedData.tokenAddress).safeTransfer(msg.sender, amount);
     }
 
     function _repay(
@@ -282,23 +287,81 @@ contract Pool is Ownable, ReentrancyGuard {
 
         uint256 scaledRepay = (repayAmount * RAY) / assetTobeBorrowedData.borrowLiquidityIndex;
 
-        uint256 collateralToRelease = (position.collateralLocked * repayAmount) / currentDebt; // This is scaled already - no need to adjust for liquidity index
-
-        IERC20(assetTobeBorrowedData.tokenAddress).safeTransferFrom(msg.sender, address(this), repayAmount);
+        uint256 collateralToRelease = (position.collateralLocked * repayAmount) / currentDebt;
 
         position.scaledDebt -= scaledRepay;
         position.collateralLocked -= collateralToRelease;
 
         assetTobeBorrowedData.totalBorrows -= repayAmount;
 
+        uint256 actualDeposits =
+            (userScaledDeposits[msg.sender][collateralData.reserveName] * collateralData.supplyLiquidityIndex) / RAY;
+        uint256 newTotal = actualDeposits + collateralToRelease;
+        userScaledDeposits[msg.sender][collateralData.reserveName] =
+            (newTotal * RAY) / collateralData.supplyLiquidityIndex;
+
         userLockedCollateral[msg.sender][collateralData.reserveName] -= collateralToRelease;
-        userScaledDeposits[msg.sender][collateralData.reserveName] += collateralToRelease;
 
         userScaledBorrows[msg.sender][assetTobeBorrowedData.reserveName] -= scaledRepay;
 
         if (position.scaledDebt == 0) {
             delete userPositions[msg.sender][positionId];
         }
+    }
+
+    function liquidatePosition(address user, uint256 positionId) internal {
+        require(!checkPositionHealth(user, positionId), "Position is healthy");
+
+        Position storage position = userPositions[user][positionId];
+        ReserveData storage collateralData = reserves[position.collateralAsset];
+        ReserveData storage borrowData = reserves[position.borrowAsset];
+
+        _updateLiquidityIndexes(collateralData);
+        _updateLiquidityIndexes(borrowData);
+
+        uint256 rawCollateral = position.collateralLocked;
+        uint256 rawDebt = (position.scaledDebt * borrowData.borrowLiquidityIndex) / RAY;
+
+        IERC20(borrowData.tokenAddress).safeTransferFrom(msg.sender, address(this), rawDebt);
+
+        uint256 collateralToSeize = rawCollateral;
+
+        borrowData.totalBorrows -= rawDebt;
+        userScaledBorrows[user][position.borrowAsset] -= position.scaledDebt;
+        userLockedCollateral[user][position.collateralAsset] -= rawCollateral;
+
+        delete userPositions[user][positionId];
+
+        IERC20(collateralData.tokenAddress).safeTransfer(msg.sender, collateralToSeize);
+    }
+
+    function getHealthFactor(Position storage position) internal view returns (uint256) {
+        ReserveData storage collateralData = reserves[position.collateralAsset];
+        ReserveData storage borrowData = reserves[position.borrowAsset];
+
+        uint256 collateralValue = (position.collateralLocked * getPrice(position.collateralAssetPriceFeed)) / RAY;
+        uint256 adjustedCollateral = (collateralValue * collateralData.liquidationThreshold) / RAY;
+
+        uint256 rawDebt = (position.scaledDebt * borrowData.borrowLiquidityIndex) / RAY;
+        uint256 debtValue = (rawDebt * getPrice(position.borrowAssetPriceFeed)) / RAY;
+
+        if (debtValue == 0) return type(uint256).max;
+        return (adjustedCollateral * RAY) / debtValue;
+    }
+
+    function checkPositionHealth(address user, uint256 positionId) public view returns (bool) {
+        Position storage position = userPositions[user][positionId];
+        require(position.scaledDebt > 0, "No active position");
+        return getHealthFactor(position) >= RAY;
+    }
+
+    function getUserPositions(address user) public view returns (Position[] memory) {
+        uint256 positionCount = userPositionCount[user];
+        Position[] memory positions = new Position[](positionCount);
+        for (uint256 i = 0; i < positionCount; i++) {
+            positions[i] = userPositions[user][i];
+        }
+        return positions;
     }
 
     function getPrice(address tokenPriceFeedAddress) internal view returns (uint256) {
