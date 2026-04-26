@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 contract InterestCalculator {
     uint256 public constant RAY = 1e18;
     uint256 public constant YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
-    bool public immutable isSupply;
+    bool public immutable IS_SUPPLY;
 
     constructor(bool _isSupply) {
-        isSupply = _isSupply;
+        IS_SUPPLY = _isSupply;
     }
 
     function getCurrentInterestRate(
@@ -27,7 +27,7 @@ contract InterestCalculator {
             interestRate = baseInterestRate + slope1 + (excessUtil * slope2) / remainingUtil;
         }
 
-        if (isSupply) {
+        if (IS_SUPPLY) {
             return (interestRate * utilizationRate * (RAY - reserveFactor)) / RAY / RAY;
         } else {
             return interestRate;

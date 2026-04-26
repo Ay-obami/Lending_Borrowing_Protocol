@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 /// @dev Minimal Chainlink Aggregator mock for local tests
-contract MockAggregator is AggregatorV3Interface {
+contract PriceFeeds is AggregatorV3Interface {
     int256 private answer;
     uint8 private _decimals;
     uint80 private roundId;
