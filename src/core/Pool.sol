@@ -90,6 +90,8 @@ contract Pool is Ownable, ReentrancyGuard {
     mapping(address => mapping(uint256 => Position)) userPositions;
     mapping(address => uint256) userPositionCount;
 
+    string[] public reserveList;
+
     uint256 constant RAY = 1e18;
     uint256 constant MIN_BUFFER = 0.05e18;
     uint256 constant MAX_BUFFER = 1e18;
@@ -223,6 +225,7 @@ contract Pool is Ownable, ReentrancyGuard {
             isBorrowable: isBorrowable,
             reserveName: reserveName
         });
+        reserveList.push(reserveName);
 
         emit ReserveInitialized(reserveName, tokenAddress, priceFeed, ltv, liquidationThreshold);
     }
@@ -307,7 +310,7 @@ contract Pool is Ownable, ReentrancyGuard {
         reserveActive(borrowName)
         nonZeroAmount(amount)
     {
-        _borrow(reserves[collateralName], reserves[borrowName], amount, bufferPercent);
+        _borrow(reserves[collateralName], reserves[borrowName], amount, bufferPercent, msg.sender);
     }
 
     function repay(string memory collateralName, string memory borrowName, uint256 positionId, uint256 repayAmount)
@@ -332,7 +335,8 @@ contract Pool is Ownable, ReentrancyGuard {
         ReserveData storage collateralData,
         ReserveData storage assetTobeBorrowedData,
         uint256 amount,
-        uint256 bufferPercent
+        uint256 bufferPercent,
+        address user
     ) internal {
         _updateLiquidityIndexes(collateralData);
         _updateLiquidityIndexes(assetTobeBorrowedData);
@@ -354,20 +358,19 @@ contract Pool is Ownable, ReentrancyGuard {
         uint256 collateralToLock = (collateralToLockInUsd * RAY) / getPrice(collateralData.priceFeed);
 
         uint256 actualDeposits =
-            (userScaledDeposits[msg.sender][collateralData.reserveName] * collateralData.supplyLiquidityIndex) / RAY;
+            (userScaledDeposits[user][collateralData.reserveName] * collateralData.supplyLiquidityIndex) / RAY;
 
         if (actualDeposits < collateralToLock) {
             revert InsufficientFreeCollateral(actualDeposits, collateralToLock);
         }
 
         uint256 remaining = actualDeposits - collateralToLock;
-        userScaledDeposits[msg.sender][collateralData.reserveName] =
-            (remaining * RAY) / collateralData.supplyLiquidityIndex;
+        userScaledDeposits[user][collateralData.reserveName] = (remaining * RAY) / collateralData.supplyLiquidityIndex;
 
         uint256 scaledAmount = (amount * RAY) / assetTobeBorrowedData.borrowLiquidityIndex;
 
-        uint256 positionId = userPositionCount[msg.sender];
-        userPositions[msg.sender][positionId] = Position({
+        uint256 positionId = userPositionCount[user];
+        userPositions[user][positionId] = Position({
             collateralAsset: collateralData.reserveName,
             collateralAssetPriceFeed: collateralData.priceFeed,
             borrowAsset: assetTobeBorrowedData.reserveName,
@@ -376,19 +379,15 @@ contract Pool is Ownable, ReentrancyGuard {
             collateralLocked: collateralToLock,
             bufferPercent: bufferPercent
         });
-        userPositionCount[msg.sender]++;
+        userPositionCount[user]++;
 
         assetTobeBorrowedData.totalBorrows += amount;
-        userLockedCollateral[msg.sender][collateralData.reserveName] += collateralToLock;
-        userScaledBorrows[msg.sender][assetTobeBorrowedData.reserveName] += scaledAmount;
+        userLockedCollateral[user][collateralData.reserveName] += collateralToLock;
+        userScaledBorrows[user][assetTobeBorrowedData.reserveName] += scaledAmount;
+        IERC20(assetTobeBorrowedData.tokenAddress).safeTransfer(user, amount);
 
         emit Borrow(
-            msg.sender,
-            assetTobeBorrowedData.reserveName,
-            collateralData.reserveName,
-            amount,
-            collateralToLock,
-            positionId
+            user, assetTobeBorrowedData.reserveName, collateralData.reserveName, amount, collateralToLock, positionId
         );
     }
 
@@ -553,6 +552,18 @@ contract Pool is Ownable, ReentrancyGuard {
 
         if (debtValue == 0) return type(uint256).max;
         return (adjustedCollateral * RAY) / debtValue;
+    }
+
+    function getAllReserves() public view returns (string[] memory) {
+        return reserveList;
+    }
+
+    function getAllReserveData() public view returns (ReserveData[] memory) {
+        ReserveData[] memory allReserves = new ReserveData[](reserveList.length);
+        for (uint256 i = 0; i < reserveList.length; i++) {
+            allReserves[i] = reserves[reserveList[i]];
+        }
+        return allReserves;
     }
 
     function checkPositionHealth(address user, uint256 positionId) public view returns (bool) {
