@@ -74,8 +74,9 @@ abstract contract SupplyModule is PoolStorage {
     function _getUserDepositBalance(
         bytes32 reserveId,
         address user
-    ) internal view returns (uint256) {
+    ) internal  returns (uint256) {
         DataTypes.ReserveData storage reserve = _reserves[reserveId];
+        reserve.updateIndexes();
         return MathLib.toReal(_scaledDeposits[reserveId][user], reserve.supplyLiquidityIndex);
     }
 }

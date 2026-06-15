@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.0;
 
 /// @dev Simple mintable ERC20 used in tests when not running on Sepolia
 contract MockERC20 {

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {Pool} from "../../src/modules/Pool.sol";
 import {DataTypes} from "../../src/libraries/DataTypes.sol";
 import {VariableInterestStrategy} from "../../src/modules/VariableInterestStrategy.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
+
+
 
 /// @notice Shared base — deploy stack + helpers every test inherits.
 abstract contract PoolTestBase is Test {

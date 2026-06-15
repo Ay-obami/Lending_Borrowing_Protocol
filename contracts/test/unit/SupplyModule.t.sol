@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import {PoolTestBase} from "./PoolTestBase.sol";
 
 contract SupplyModuleTest is PoolTestBase {
+
+    event Deposit(address indexed user, bytes32 indexed reserveId, uint256 amount, uint256 scaledAmount);
     // ================================================================
     // deposit
     // ================================================================

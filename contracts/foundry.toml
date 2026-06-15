@@ -6,9 +6,18 @@ test    = "test"
 script  = "scripts"
 solc    = "0.8.20"
 
+remappings = [
+  "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol=lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol",
+  "@forge-std/=lib/forge-std/",
+  "@account-abstraction/=lib/account-abstraction/"
+]
+
+
 optimizer         = true
 optimizer_runs    = 200
-via_ir            = false
+via_ir            = true
 
 [profile.default.fuzz]
 runs = 256

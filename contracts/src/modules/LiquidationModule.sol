@@ -22,6 +22,8 @@ abstract contract LiquidationModule is PoolStorage {
     using ReserveLib for DataTypes.ReserveData;
     using MathLib for uint256;
 
+     
+
     // ================================================================
     // Liquidate
     // ================================================================
@@ -100,21 +102,31 @@ abstract contract LiquidationModule is PoolStorage {
 
     /// @notice Returns true when HF >= 1 RAY (position is healthy).
     function _checkHealth(address user, uint256 positionId) internal view returns (bool) {
-        DataTypes.Position storage pos = _positions[user][positionId];
-        if (!pos.isOpen) return true;
+    require(positionId < _positions[user].length, "invalid position");
 
-        DataTypes.ReserveData storage borrowReserve    = _reserves[pos.borrowReserveId];
-        DataTypes.ReserveData storage collateralReserve = _reserves[pos.collateralReserveId];
+    DataTypes.Position storage pos = _positions[user][positionId];
 
-        uint256 debtReal = MathLib.toReal(pos.scaledDebt, borrowReserve.borrowLiquidityIndex);
+    if (!pos.isOpen) return false;
 
-        uint256 debtValueRay       = MathLib.rayMul(debtReal, IPriceOracle(_oracle).getPrice(pos.borrowPriceFeed));
-        uint256 collateralValueRay = MathLib.rayMul(pos.collateralLocked, IPriceOracle(_oracle).getPrice(pos.collateralPriceFeed));
+    DataTypes.ReserveData storage borrowReserve    = _reserves[pos.borrowReserveId];
+    DataTypes.ReserveData storage collateralReserve = _reserves[pos.collateralReserveId];
 
-        return MathLib.healthFactor(
-            collateralValueRay,
-            debtValueRay,
-            collateralReserve.liquidationThreshold
-        ) >= DataTypes.RAY;
-    }
+    uint256 debtReal = MathLib.toReal(pos.scaledDebt, borrowReserve.borrowLiquidityIndex);
+
+    uint256 debtValueRay = MathLib.rayMul(
+        debtReal,
+        IPriceOracle(_oracle).getPrice(pos.borrowPriceFeed)
+    );
+
+    uint256 collateralValueRay = MathLib.rayMul(
+        pos.collateralLocked,
+        IPriceOracle(_oracle).getPrice(pos.collateralPriceFeed)
+    );
+
+    return MathLib.healthFactor(
+        collateralValueRay,
+        debtValueRay,
+        collateralReserve.liquidationThreshold
+    ) >= DataTypes.RAY;
+}
 }

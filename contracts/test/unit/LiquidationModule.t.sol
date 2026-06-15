@@ -2,9 +2,20 @@
 pragma solidity ^0.8.20;
 
 import {PoolTestBase} from "./PoolTestBase.sol";
+import {console} from "forge-std/Test.sol";
 
 contract LiquidationModuleTest is PoolTestBase {
     address internal liquidator = makeAddr("liquidator");
+
+     event Liquidated(
+        address indexed user,
+        address indexed liquidator,
+        bytes32 indexed collateralReserveId,
+        bytes32 borrowReserveId,
+        uint256 debtRepaid,
+        uint256 collateralSeized,
+        uint256 positionId
+    );
 
     function setUp() public override {
         super.setUp();
@@ -25,12 +36,12 @@ contract LiquidationModuleTest is PoolTestBase {
     // checkPositionHealth
     // ================================================================
 
-    function test_HealthyPosition_ReturnsTrue() public {
+    function test_HealthyPosition_ReturnsTrue() public view {
         assertTrue(pool.checkPositionHealth(bob, 0));
     }
 
     function test_UnhealthyPosition_ReturnsFalse() public {
-        _crashEth(1_500 * RAY); // $30k collateral → $15k, HF ≈ 0.63
+        _crashEth(2_500 * RAY); // $30k collateral → $15k, HF ≈ 0.63
         assertFalse(pool.checkPositionHealth(bob, 0));
     }
 
@@ -45,7 +56,7 @@ contract LiquidationModuleTest is PoolTestBase {
     }
 
     function test_Liquidate_ClosesPosition() public {
-        _crashEth(1_200 * RAY);
+        _crashEth(2_500 * RAY);
 
         uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
         usdt.mint(liquidator, debt);
@@ -54,12 +65,14 @@ contract LiquidationModuleTest is PoolTestBase {
         pool.liquidate(bob, 0);
         vm.stopPrank();
 
+        console.log(pool.getUserPositions(bob).length);
+        console.log(pool.checkPositionHealth(bob, 0));
         assertFalse(pool.checkPositionHealth(bob, 0)); // position gone
         assertEq(pool.getUserPositions(bob).length, 0);
     }
 
     function test_Liquidate_RepaysFullDebt() public {
-        _crashEth(1_200 * RAY);
+        _crashEth(2_500 * RAY);
         uint256 reserveBorrowsBefore = pool.getReserve(USDT_ID).totalBorrows;
 
         uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
@@ -75,7 +88,7 @@ contract LiquidationModuleTest is PoolTestBase {
     /// @dev Bug-fix regression: liquidation bonus must be applied.
     ///      Liquidator should receive MORE collateral than the bare debt value.
     function test_Liquidate_LiquidationBonusApplied() public {
-        _crashEth(1_200 * RAY);
+        _crashEth(2_500 * RAY);
 
         uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
 
@@ -83,7 +96,7 @@ contract LiquidationModuleTest is PoolTestBase {
         // debtInCollateralUnits = debt * usdtPrice / wethPrice
         //                       = debt * 1e18 / 1200e18
         // seized = debtInCollateral * (1 + 0.05)
-        uint256 debtInWeth = debt * RAY / (1_200 * RAY);          // debt / wethPrice
+        uint256 debtInWeth = debt * RAY / (2_500 * RAY);          // debt / wethPrice
         uint256 expectedSeized = debtInWeth * (RAY + LIQ_BONUS) / RAY; // + 5 %
 
         uint256 wethBefore = weth.balanceOf(liquidator);
@@ -102,7 +115,7 @@ contract LiquidationModuleTest is PoolTestBase {
 
     function test_Liquidate_LeftoverCollateralReturnedToBorrower() public {
         // Price drop is moderate — collateral still exceeds debt+bonus → leftover
-        _crashEth(1_200 * RAY);
+        _crashEth(2_500 * RAY);
 
         uint256 wethBefore = weth.balanceOf(bob);
         uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
@@ -119,15 +132,23 @@ contract LiquidationModuleTest is PoolTestBase {
     }
 
     function test_Liquidate_EmitsEvent() public {
-        _crashEth(1_200 * RAY);
-        uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
-        usdt.mint(liquidator, debt);
+    _crashEth(2_500 * RAY);
+    uint256 debt = pool.getUserBorrowBalance(USDT_ID, bob);
+    usdt.mint(liquidator, debt);
 
-        vm.startPrank(liquidator);
-        usdt.approve(address(pool), debt);
-        vm.expectEmit(true, true, true, false, address(pool));
-        emit Liquidated(bob, liquidator, WETH_ID, USDT_ID, debt, 0, 0);
-        pool.liquidate(bob, 0);
-        vm.stopPrank();
-    }
+   // uint256 collateralLocked = pool.getPosition(bob, 0).collateralLocked;
+    uint256 debtInWeth = debt * RAY / (2_500 * RAY);          // debt / wethPrice
+        uint256 expectedSeized = debtInWeth * (RAY + LIQ_BONUS) / RAY; // + 5 %
+
+    vm.startPrank(liquidator);
+    usdt.approve(address(pool), debt);
+
+    // Step 1: declare which parts to check (topic1, topic2, topic3, data) + emitter
+    vm.expectEmit(true, true, true, true, address(pool));
+    // Step 2: emit the expected event — must immediately precede the call that triggers it
+    emit Liquidated(bob, liquidator, WETH_ID, USDT_ID, debt, expectedSeized, 0);
+
+    pool.liquidate(bob, 0);
+    vm.stopPrank();
+}
 }

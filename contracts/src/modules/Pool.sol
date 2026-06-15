@@ -38,17 +38,15 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
     // IPool — core user actions
     // ================================================================
 
-    /// @inheritdoc IPool
+    /// test
     function deposit(bytes32 reserveId, uint256 amount) external override {
         _deposit(reserveId, amount);
     }
 
-    /// @inheritdoc IPool
     function withdraw(bytes32 reserveId, uint256 amount) external override {
         _withdraw(reserveId, amount);
     }
 
-    /// @inheritdoc IPool
     function borrow(
         bytes32 collateralId,
         bytes32 borrowId,
@@ -58,7 +56,6 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
         _borrow(collateralId, borrowId, amount, bufferPercent);
     }
 
-    /// @inheritdoc IPool
     function repay(
         bytes32 collateralId,
         bytes32 borrowId,
@@ -68,7 +65,6 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
         _repay(collateralId, borrowId, positionId, repayAmount);
     }
 
-    /// @inheritdoc IPool
     function liquidate(address user, uint256 positionId) external override {
         _liquidate(user, positionId);
     }
@@ -77,7 +73,6 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
     // IPool — admin
     // ================================================================
 
-    /// @inheritdoc IPool
     function addReserve(DataTypes.ReserveConfig calldata cfg) external override onlyOwner {
         bytes32 id = getReserveId(cfg.name);
         require(_reserves[id].tokenAddress == address(0), "Pool: reserve exists");
@@ -121,13 +116,11 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
         );
     }
 
-    /// @inheritdoc IPool
     function setReserveActive(bytes32 reserveId, bool active) external override onlyOwner {
         _getReserve(reserveId).isActive = active;
         emit ReserveStatusUpdated(reserveId, active);
     }
 
-    /// @inheritdoc IPool
     function setReserveBorrowable(bytes32 reserveId, bool borrowable) external override onlyOwner {
         _getReserve(reserveId).isBorrowable = borrowable;
         emit ReserveBorrowStatusUpdated(reserveId, borrowable);
@@ -137,12 +130,10 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
     // IPool — views
     // ================================================================
 
-    /// @inheritdoc IPool
     function getReserve(bytes32 reserveId) external view override returns (DataTypes.ReserveData memory) {
         return _getReserve(reserveId);
     }
 
-    /// @inheritdoc IPool
     function getAllReserves() external view override returns (DataTypes.ReserveData[] memory) {
         uint256 len = _reserveIds.length;
         DataTypes.ReserveData[] memory result = new DataTypes.ReserveData[](len);
@@ -152,29 +143,24 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
         return result;
     }
 
-    /// @inheritdoc IPool
     function getReserveId(string calldata name) public pure override returns (bytes32) {
         return keccak256(abi.encodePacked(name));
     }
 
-    /// @inheritdoc IPool
-    function getUserDepositBalance(bytes32 reserveId, address user) external view override returns (uint256) {
+    function getUserDepositBalance(bytes32 reserveId, address user) external  returns (uint256) {
         return _getUserDepositBalance(reserveId, user);
     }
 
-    /// @inheritdoc IPool
     /// @dev Pure view — no state mutation. (Bug fix: original called _updateLiquidityIndexes here)
-    function getUserBorrowBalance(bytes32 reserveId, address user) external view override returns (uint256) {
+    function getUserBorrowBalance(bytes32 reserveId, address user) external returns (uint256) {
         return _getUserBorrowBalance(reserveId, user);
     }
 
-    /// @inheritdoc IPool
     function getUtilizationRate(bytes32 reserveId) external view override returns (uint256) {
         DataTypes.ReserveData storage r = _getReserve(reserveId);
         return MathLib.utilizationRate(r.totalBorrows, r.totalDeposits);
     }
 
-    /// @inheritdoc IPool
     /// @dev Returns only open positions — no empty slots (bug fix vs original).
     function getUserPositions(address user) external view override returns (DataTypes.Position[] memory) {
         DataTypes.Position[] storage all = _positions[user];
@@ -195,8 +181,10 @@ contract Pool is SupplyModule, BorrowModule, LiquidationModule {
         }
         return result;
     }
+    function getPosition(address user, uint256 positionId) external view returns (DataTypes.Position memory) {
+        return _getPosition(user, positionId);
+    }
 
-    /// @inheritdoc IPool
     function checkPositionHealth(address user, uint256 positionId) external view override returns (bool) {
         return _checkHealth(user, positionId);
     }
