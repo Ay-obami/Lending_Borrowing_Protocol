@@ -138,10 +138,12 @@ contracts/test/unit/
 └── PoolTestBase.sol
 ```
 
-Run it with:
+Install Foundry v1.8.3 (the CI version), then initialize the pinned dependencies and run the suite:
 
 ```bash
+git submodule update --init --recursive
 cd contracts
+forge fmt --check
 forge build
 forge test -vvv
 ```
