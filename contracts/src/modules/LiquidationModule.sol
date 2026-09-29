@@ -99,7 +99,7 @@ abstract contract LiquidationModule is PoolStorage {
         DataTypes.ReserveData storage borrowReserve = _reserves[pos.borrowReserveId];
         DataTypes.ReserveData storage collateralReserve = _reserves[pos.collateralReserveId];
 
-        uint256 debtReal = MathLib.toReal(pos.scaledDebt, borrowReserve.borrowLiquidityIndex);
+        uint256 debtReal = MathLib.toReal(pos.scaledDebt, borrowReserve.previewBorrowIndex());
 
         uint256 debtValueRay = MathLib.rayMul(debtReal, IPriceOracle(_oracle).getPrice(pos.borrowPriceFeed));
 

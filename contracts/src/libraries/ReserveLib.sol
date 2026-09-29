@@ -6,7 +6,7 @@ import {MathLib} from "./MathLib.sol";
 import {IInterestStrategy} from "../interfaces/IInterestStrategy.sol";
 
 /// @title ReserveLib
-/// @notice Stateless helpers that mutate `ReserveData` structs.
+/// @notice Helpers for updating and previewing reserve accounting.
 ///         Pool modules import this so the accounting logic is not duplicated.
 library ReserveLib {
     using MathLib for uint256;
@@ -34,6 +34,32 @@ library ReserveLib {
         reserve.supplyLiquidityIndex = MathLib.compoundIndex(reserve.supplyLiquidityIndex, supplyRate, elapsed);
 
         reserve.lastUpdateTimestamp = block.timestamp;
+    }
+
+    /// @notice Preview accrued borrow interest without changing storage.
+    function previewBorrowIndex(DataTypes.ReserveData storage reserve) internal view returns (uint256) {
+        uint256 elapsed = block.timestamp - reserve.lastUpdateTimestamp;
+        if (elapsed == 0) return reserve.borrowLiquidityIndex;
+
+        uint256 util = MathLib.utilizationRate(reserve.totalBorrows, reserve.totalDeposits);
+
+        uint256 borrowRate = IInterestStrategy(reserve.interestStrategy)
+            .getBorrowRate(util, reserve.slope1, reserve.slope2, reserve.baseInterestRate, reserve.optimalUtilization);
+
+        return MathLib.compoundIndex(reserve.borrowLiquidityIndex, borrowRate, elapsed);
+    }
+
+    /// @notice Preview accrued supply interest using the same rates as updateIndexes.
+    function previewSupplyIndex(DataTypes.ReserveData storage reserve) internal view returns (uint256) {
+        uint256 elapsed = block.timestamp - reserve.lastUpdateTimestamp;
+        if (elapsed == 0) return reserve.supplyLiquidityIndex;
+
+        uint256 util = MathLib.utilizationRate(reserve.totalBorrows, reserve.totalDeposits);
+        uint256 borrowRate = IInterestStrategy(reserve.interestStrategy)
+            .getBorrowRate(util, reserve.slope1, reserve.slope2, reserve.baseInterestRate, reserve.optimalUtilization);
+        uint256 supplyRate =
+            IInterestStrategy(reserve.interestStrategy).getSupplyRate(borrowRate, util, reserve.reserveFactor);
+        return MathLib.compoundIndex(reserve.supplyLiquidityIndex, supplyRate, elapsed);
     }
 
     // ================================================================
@@ -85,3 +111,4 @@ library ReserveLib {
         require(reserve.totalBorrows + extra <= reserve.borrowCap, "ReserveLib: borrow cap exceeded");
     }
 }
+
