@@ -1,11 +1,14 @@
 // ─── On-chain raw structs (bigint from contract) ───────────────────────────
+// Field sets and names mirror contracts/src/libraries/DataTypes.sol exactly
+// (field ORDER matters for ABI struct decoding — see lib/abi.ts).
 
 export interface RawReserveData {
-  totalDeposits: bigint
-  totalBorrows: bigint
-  supplyLiquidityIndex: bigint
-  borrowLiquidityIndex: bigint
-  lastUpdateTimestamp: bigint
+  decimals: number // hydrated through getReserveTokenDecimals
+  id: `0x${string}`
+  reserveName: string
+  tokenAddress: `0x${string}`
+  priceFeed: `0x${string}`
+  interestStrategy: `0x${string}`
   liquidationThreshold: bigint
   ltv: bigint
   slope1: bigint
@@ -16,26 +19,36 @@ export interface RawReserveData {
   reserveFactor: bigint
   borrowCap: bigint
   supplyCap: bigint
-  priceFeed: `0x${string}`
-  tokenAddress: `0x${string}`
+  totalDeposits: bigint
+  totalBorrows: bigint
+  supplyLiquidityIndex: bigint
+  borrowLiquidityIndex: bigint
+  lastUpdateTimestamp: bigint
   isActive: boolean
   isBorrowable: boolean
-  reserveName: string
 }
 
+/**
+ * Matches DataTypes.Position exactly — reserves are identified by bytes32 ID
+ * on-chain, NOT by name. Display names are resolved client-side (see
+ * hooks/usePositions.ts) against a reserveId → reserve map built from
+ * getAllReserves(); there is no on-chain lookup that returns names directly.
+ */
 export interface RawPosition {
-  collateralAsset: string
-  collateralAssetPriceFeed: `0x${string}`
-  borrowAsset: string
-  borrowAssetPriceFeed: `0x${string}`
+  collateralReserveId: `0x${string}`
+  borrowReserveId: `0x${string}`
+  collateralPriceFeed: `0x${string}`
+  borrowPriceFeed: `0x${string}`
   scaledDebt: bigint
   collateralLocked: bigint
   bufferPercent: bigint
+  isOpen: boolean
 }
 
 // ─── Human-readable UI models ──────────────────────────────────────────────
 
 export interface ReserveInfo {
+  decimals: number
   name: string
   tokenAddress: `0x${string}`
   priceFeed: `0x${string}`
@@ -56,16 +69,14 @@ export interface ReserveInfo {
 }
 
 export interface PositionInfo {
+  debtAmount: bigint
   id: number
-  collateralAsset: string
-  borrowAsset: string
+  collateralAsset: string     // resolved display name (falls back to a
+  borrowAsset: string         // shortened reserveId if the reserve wasn't found)
   realDebt: number            // scaledDebt × borrowLiquidityIndex / RAY
   collateralLocked: number    // static, no transform
   bufferPercent: number
-  // populated from reserve:
-  borrowAPY: number
-  // lazy-loaded:
-  healthFactor?: number
+  borrowAPY: number           // populated from the matching reserve
 }
 
 export type RiskLevel = 'healthy' | 'warning' | 'danger'
